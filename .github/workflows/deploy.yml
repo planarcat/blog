@@ -1,13 +1,14 @@
-name: Deploy Hexo Blog
+name: Deploy Hexo Blog to planarcat.github.io/blog
 
 on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     
     steps:
@@ -16,34 +17,24 @@ jobs:
       with:
         fetch-depth: 0
 
-    # 重要：先安装 pnpm
+    # 使用 pnpm（让 GitHub Actions 控制版本）
     - name: Setup pnpm
-      uses: pnpm/action-setup@v4  # 使用最新版本 v4
+      uses: pnpm/action-setup@v4
       with:
-        version: latest  # 或者指定版本如 "8"
+        version: latest  # 稳定版本
         run_install: false
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'pnpm'  # 使用 pnpm 缓存
+        cache: 'pnpm'
         cache-dependency-path: 'pnpm-lock.yaml'
 
-    # 验证 pnpm 安装
-    - name: Verify pnpm installation
-      run: |
-        echo "检查 pnpm 版本:"
-        pnpm --version
-        echo "检查 pnpm 路径:"
-        which pnpm
-
-    - name: Install dependencies with pnpm
+    - name: Install dependencies
       run: |
         pnpm install --frozen-lockfile
-
-    - name: Install Hexo CLI globally
-      run: pnpm add -g hexo-cli
+        pnpm add -g hexo-cli
 
     - name: Setup theme
       run: |
@@ -52,20 +43,46 @@ jobs:
           git clone --depth=1 https://github.com/next-theme/hexo-theme-next themes/next
         fi
 
-    - name: Generate static files
+    - name: Build site
       run: |
         hexo clean
         hexo generate
       env:
         NODE_OPTIONS: '--max_old_space_size=4096'
 
+    - name: Verify generated files
+      run: |
+        echo "生成的静态文件："
+        ls -la public/
+        echo "首页预览："
+        head -10 public/index.html || echo "没有生成 index.html"
+
+    # 关键：部署到 planarcat.github.io 仓库的 blog 子目录
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        # 使用 PAT 而不是 GITHUB_TOKEN
+        personal_access_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        
+        # 明确指定目标仓库
+        external_repository: planarcat/planarcat.github.io
+        
+        # 发布目录：博客生成的静态文件
         publish_dir: ./public
+        
+        # 目标目录：放在 blog 子目录下
         destination_dir: ./blog
+        
+        # 目标分支：main
         publish_branch: main
+        
+        # 重要：保留其他文件（如 js-toolkit/）
         keep_files: true
+        
+        # 提交信息
         commit_message: |
-          博客部署: ${{ github.event.head_commit.message }}
+          📝 博客更新: ${{ github.event.head_commit.message }}
+          
+          源仓库: ${{ github.repository }}
+          触发提交: ${{ github.sha }}
+          时间: $(date '+%Y-%m-%d %H:%M:%S')
