@@ -15,65 +15,56 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    # 最简单的 pnpm 安装方式
-    - name: Install pnpm
-      run: npm install -g pnpm@8
-    
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
     
-    - name: Verify environment
+    # 关键：安装 pnpm 并设置全局目录
+    - name: Install and setup pnpm
+      run: |
+        npm install -g pnpm@8
+        # 设置 pnpm 全局目录
+        pnpm setup
+        # 将 pnpm 全局目录添加到 PATH
+        echo "PNPM_HOME=$(pnpm store path)" >> $GITHUB_ENV
+        echo "$(pnpm store path)" >> $GITHUB_PATH
+    
+    - name: Verify installations
       run: |
         echo "Node.js: $(node --version)"
         echo "pnpm: $(pnpm --version)"
-        echo "当前目录: $(pwd)"
-        echo "文件列表:"
-        ls -la
+        echo "pnpm 全局目录: $(pnpm store path)"
+        echo "PATH: $PATH"
     
     - name: Install dependencies
       run: |
-        echo "安装依赖..."
-        # 先检查 lock 文件
-        if [ -f "pnpm-lock.yaml" ]; then
-          echo "使用 pnpm-lock.yaml"
-          # 尝试使用 --frozen-lockfile，如果失败则使用普通安装
-          pnpm install --frozen-lockfile || pnpm install
-        else
-          echo "没有 lock 文件，重新生成"
-          pnpm install
-        fi
+        pnpm install
     
-    - name: Install Hexo CLI
-      run: pnpm add -g hexo-cli
-    
-    - name: Setup theme
+    # 使用 npx 运行 hexo，避免全局安装问题
+    - name: Build blog (using npx)
       run: |
-        if [ ! -d "themes/next" ]; then
-          git clone https://github.com/next-theme/hexo-theme-next themes/next
-        fi
-    
-    - name: Build blog
-      run: |
-        hexo clean
-        hexo generate
+        npx hexo version
+        npx hexo clean
+        npx hexo generate
         
         # 验证构建
-        if [ ! -d "public" ]; then
-          echo "构建失败，public 目录不存在"
+        if [ -d "public" ]; then
+          echo "✅ 构建成功！"
+        else
+          echo "❌ 构建失败"
           exit 1
         fi
-        echo "构建成功，生成 $(find public -type f | wc -l) 个文件"
     
-    - uses: actions/upload-pages-artifact@v3
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
       with:
         path: './public'
 
   deploy:
     environment:
       name: github-pages
-      url: \${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
     steps:
