@@ -1,3 +1,22 @@
+#!/bin/bash
+echo "=== 完整修复脚本 ==="
+echo ""
+
+# 1. 检查当前状态
+echo "1. 检查当前状态:"
+ls -la pnpm-lock.yaml 2>/dev/null || echo "pnpm-lock.yaml 不存在"
+
+echo ""
+echo "2. 备份现有配置:"
+if [ -f ".github/workflows/deploy.yml" ]; then
+  cp .github/workflows/deploy.yml .github/workflows/deploy.yml.backup
+  echo "已备份 deploy.yml"
+fi
+
+echo ""
+echo "3. 创建新的工作流配置:"
+mkdir -p .github/workflows
+cat > .github/workflows/deploy.yml << 'CONFIG'
 name: Deploy Blog
 
 on:
@@ -80,3 +99,20 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
+CONFIG
+
+echo "✅ 配置已创建"
+
+echo ""
+echo "4. 本地测试构建:"
+echo "   请在本地运行以下命令:"
+echo "   rm -rf node_modules public"
+echo "   pnpm install"
+echo "   hexo clean && hexo generate"
+echo "   如果成功，则提交并推送"
+
+echo ""
+echo "5. 执行命令:"
+echo "   git add ."
+echo "   git commit -m 'fix: 更新部署配置，修复pnpm问题'"
+echo "   git push origin main"
