@@ -12,7 +12,7 @@ permissions:
   id-token: write
 
 env:
-  PNPM_VERSION: '8'  # 使用更稳定的 pnpm 8，与 js-toolkit 的 10 不同
+  PNPM_VERSION: '8'
   NODE_VERSION: '20.x'
 
 concurrency:
@@ -29,16 +29,28 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 重要：先安装 pnpm
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        id: pnpm-setup
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      # 再设置 Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      # 验证 pnpm 安装
+      - name: Verify pnpm installation
+        run: |
+          echo "pnpm 版本: $(pnpm --version)"
+          echo "pnpm 路径: $(which pnpm)"
+          echo "Node.js 版本: $(node --version)"
 
       # 缓存 node_modules
       - name: Cache node_modules
@@ -61,14 +73,12 @@ jobs:
             pnpm install --frozen-lockfile
           fi
 
-      # 安装 Hexo CLI
       - name: Install Hexo CLI
         run: |
           echo "安装 Hexo CLI..."
           pnpm add -g hexo-cli
           echo "Hexo 版本: $(hexo version)"
 
-      # 确保主题存在
       - name: Setup theme
         run: |
           if [ ! -d "themes/next" ]; then
@@ -78,7 +88,6 @@ jobs:
             echo "✅ 主题已存在"
           fi
 
-      # 构建博客
       - name: Build blog
         run: |
           echo "构建博客..."
@@ -87,7 +96,6 @@ jobs:
           echo "构建完成，检查 public 目录:"
           ls -la public/ | head -10
 
-      # 上传 Pages Artifact
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
