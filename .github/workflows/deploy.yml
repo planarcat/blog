@@ -1,45 +1,47 @@
-name: Deploy Blog to Subdirectory
+name: Deploy Hexo Blog
 
 on:
   push:
     branches:
-      - main  # 当源代码分支有推送时触发
-  workflow_dispatch:
+      - main  # 当源代码推送到 main 分支时触发
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+    - name: Checkout source code
+      uses: actions/checkout@v4
       with:
-        submodules: true  # 包含主题子模块
+        submodules: true  # 如果使用 Git 子模块管理主题
         fetch-depth: 0
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
+        cache: 'npm'
 
-    - name: Install Dependencies
+    - name: Install dependencies
       run: |
         npm install -g hexo-cli
-        npm install
+        npm ci  # 使用 ci 而不是 install，更可靠
 
-    - name: Generate Files
+    - name: Generate static files
       run: |
         hexo clean
         hexo generate
       env:
         NODE_OPTIONS: '--max_old_space_size=4096'
 
-    - name: Deploy to Subdirectory
+    - name: Deploy to GitHub Pages
+      # 关键：使用部署动作
       uses: peaceiris/actions-gh-pages@v3
       with:
-        # 关键配置：部署到子目录
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}  # 自动生成，无需配置
         publish_dir: ./public
-        destination_dir: ./blog  # 部署到 blog 子目录
-        publish_branch: main  # 推送到主仓库的 main 分支
-        keep_files: true  # 保留主仓库的其他文件
+        destination_dir: ./blog  # 部署到子目录
+        publish_branch: main  # 目标分支
+        keep_files: true  # 保留其他文件（你的 js-toolkit 等）
+        commit_message: ${{ github.event.head_commit.message }}

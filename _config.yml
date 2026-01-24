@@ -101,8 +101,4 @@ theme: next
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
-deploy:
-  type: git
-  repo: https://github.com/planarcat/blog.git
-  branch: main
-  message: '站点更新: {{ now("YYYY-MM-DD HH:mm:ss") }}'
+## 不需要deploy配置，由 Github Actions 自动部署
