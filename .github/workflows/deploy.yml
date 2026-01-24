@@ -1,105 +1,65 @@
-# .github/workflows/deploy-blog.yml
-name: Deploy Blog to GitHub Pages
+# .github/workflows/deploy-blog-simple.yml
+name: Deploy Blog (Simple)
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-env:
-  PNPM_VERSION: '8'
-  NODE_VERSION: '20.x'
-
-concurrency:
-  group: "pages-blog"
-  cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # 重要：先安装 pnpm
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        id: pnpm-setup
-        with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      # 再设置 Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: 'pnpm-lock.yaml'
-
-      # 验证 pnpm 安装
-      - name: Verify pnpm installation
-        run: |
-          echo "pnpm 版本: $(pnpm --version)"
-          echo "pnpm 路径: $(which pnpm)"
-          echo "Node.js 版本: $(node --version)"
-
-      # 缓存 node_modules
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-blog-node-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-blog-node-
-
-      - name: Install dependencies
-        run: |
-          echo "安装依赖..."
-          if [[ "${{ steps.node-modules-cache.outputs.cache-hit }}" == 'true' ]]; then
-            echo "✅ 使用缓存的 node_modules"
-            pnpm install --frozen-lockfile --prefer-offline
-          else
-            echo "🔄 全新安装依赖..."
-            pnpm install --frozen-lockfile
-          fi
-
-      - name: Install Hexo CLI
-        run: |
-          echo "安装 Hexo CLI..."
-          pnpm add -g hexo-cli
-          echo "Hexo 版本: $(hexo version)"
-
-      - name: Setup theme
-        run: |
-          if [ ! -d "themes/next" ]; then
-            echo "正在克隆 Next 主题..."
-            git clone --depth=1 https://github.com/next-theme/hexo-theme-next themes/next
-          else
-            echo "✅ 主题已存在"
-          fi
-
-      - name: Build blog
-        run: |
-          echo "构建博客..."
-          hexo clean
-          hexo generate
-          echo "构建完成，检查 public 目录:"
-          ls -la public/ | head -10
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './public'
+    - uses: actions/checkout@v4
+    
+    # 使用 Node.js 20
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    # 使用 npm 安装 pnpm（最简单的方案）
+    - name: Install pnpm via npm
+      run: npm install -g pnpm@8
+    
+    # 验证安装
+    - name: Verify installations
+      run: |
+        echo "Node.js version: $(node --version)"
+        echo "pnpm version: $(pnpm --version)"
+        echo "npm version: $(npm --version)"
+    
+    # 安装依赖
+    - name: Install dependencies
+      run: |
+        pnpm install --frozen-lockfile
+    
+    # 安装 Hexo CLI
+    - name: Install Hexo CLI
+      run: |
+        pnpm add -g hexo-cli
+    
+    # 设置主题
+    - name: Setup theme
+      run: |
+        if [ ! -d "themes/next" ]; then
+          git clone --depth=1 https://github.com/next-theme/hexo-theme-next themes/next
+        fi
+    
+    # 构建博客
+    - name: Build blog
+      run: |
+        hexo clean
+        hexo generate
+    
+    # 上传 Pages Artifact
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './public'
 
   deploy:
     environment:
@@ -108,6 +68,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
