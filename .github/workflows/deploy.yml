@@ -3,8 +3,8 @@ name: Deploy Hexo Blog
 on:
   push:
     branches:
-      - main  # 当源代码推送到 main 分支时触发
-  workflow_dispatch:  # 允许手动触发
+      - main
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -14,19 +14,35 @@ jobs:
     - name: Checkout source code
       uses: actions/checkout@v4
       with:
-        submodules: true  # 如果使用 Git 子模块管理主题
         fetch-depth: 0
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
+        # 重要：指定使用 pnpm 缓存
+        cache: 'pnpm'
+
+    # 新增：安装 pnpm
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8  # 指定版本，或使用 latest
 
     - name: Install dependencies
       run: |
-        npm install -g hexo-cli
-        npm ci  # 使用 ci 而不是 install，更可靠
+        # 使用 pnpm 全局安装 hexo-cli
+        pnpm add -g hexo-cli
+        
+        # 使用 pnpm 安装项目依赖
+        pnpm install --frozen-lockfile  # 类似 npm ci/yarn --frozen-lockfile
+
+    - name: Setup theme
+      run: |
+        if [ ! -d "themes/next" ]; then
+          echo "正在克隆 Next 主题..."
+          git clone --depth=1 https://github.com/next-theme/hexo-theme-next themes/next
+        fi
 
     - name: Generate static files
       run: |
@@ -36,12 +52,12 @@ jobs:
         NODE_OPTIONS: '--max_old_space_size=4096'
 
     - name: Deploy to GitHub Pages
-      # 关键：使用部署动作
       uses: peaceiris/actions-gh-pages@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}  # 自动生成，无需配置
+        github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./public
-        destination_dir: ./blog  # 部署到子目录
-        publish_branch: main  # 目标分支
-        keep_files: true  # 保留其他文件（你的 js-toolkit 等）
-        commit_message: ${{ github.event.head_commit.message }}
+        destination_dir: ./blog
+        publish_branch: main
+        keep_files: true
+        commit_message: |
+          博客部署: ${{ github.event.head_commit.message }}
