@@ -1,0 +1,45 @@
+name: Deploy Blog to Subdirectory
+
+on:
+  push:
+    branches:
+      - main  # 当源代码分支有推送时触发
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: true  # 包含主题子模块
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install Dependencies
+      run: |
+        npm install -g hexo-cli
+        npm install
+
+    - name: Generate Files
+      run: |
+        hexo clean
+        hexo generate
+      env:
+        NODE_OPTIONS: '--max_old_space_size=4096'
+
+    - name: Deploy to Subdirectory
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        # 关键配置：部署到子目录
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./public
+        destination_dir: ./blog  # 部署到 blog 子目录
+        publish_branch: main  # 推送到主仓库的 main 分支
+        keep_files: true  # 保留主仓库的其他文件
