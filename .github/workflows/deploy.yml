@@ -16,26 +16,34 @@ jobs:
       with:
         fetch-depth: 0
 
+    # 重要：先安装 pnpm
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4  # 使用最新版本 v4
+      with:
+        version: latest  # 或者指定版本如 "8"
+        run_install: false
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        # 重要：指定使用 pnpm 缓存
-        cache: 'pnpm'
+        cache: 'pnpm'  # 使用 pnpm 缓存
+        cache-dependency-path: 'pnpm-lock.yaml'
 
-    # 新增：安装 pnpm
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8  # 指定版本，或使用 latest
-
-    - name: Install dependencies
+    # 验证 pnpm 安装
+    - name: Verify pnpm installation
       run: |
-        # 使用 pnpm 全局安装 hexo-cli
-        pnpm add -g hexo-cli
-        
-        # 使用 pnpm 安装项目依赖
-        pnpm install --frozen-lockfile  # 类似 npm ci/yarn --frozen-lockfile
+        echo "检查 pnpm 版本:"
+        pnpm --version
+        echo "检查 pnpm 路径:"
+        which pnpm
+
+    - name: Install dependencies with pnpm
+      run: |
+        pnpm install --frozen-lockfile
+
+    - name: Install Hexo CLI globally
+      run: pnpm add -g hexo-cli
 
     - name: Setup theme
       run: |
