@@ -19,40 +19,44 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
     
-    # 关键：安装 pnpm 并设置全局目录
-    - name: Install and setup pnpm
+    # 删除 pnpm 文件，完全使用 npm
+    - name: Clean up pnpm files
       run: |
-        npm install -g pnpm@8
-        # 设置 pnpm 全局目录
-        pnpm setup
-        # 将 pnpm 全局目录添加到 PATH
-        echo "PNPM_HOME=$(pnpm store path)" >> $GITHUB_ENV
-        echo "$(pnpm store path)" >> $GITHUB_PATH
+        rm -f pnpm-lock.yaml 2>/dev/null || true
+        rm -rf node_modules 2>/dev/null || true
     
-    - name: Verify installations
+    - name: Install dependencies with npm
       run: |
-        echo "Node.js: $(node --version)"
-        echo "pnpm: $(pnpm --version)"
-        echo "pnpm 全局目录: $(pnpm store path)"
-        echo "PATH: $PATH"
+        npm install
+        npm install -g hexo-cli
     
-    - name: Install dependencies
+    - name: Setup theme
       run: |
-        pnpm install
+        if [ ! -d "themes/next" ]; then
+          git clone https://github.com/next-theme/hexo-theme-next themes/next
+        fi
     
-    # 使用 npx 运行 hexo，避免全局安装问题
-    - name: Build blog (using npx)
+    - name: Build blog
       run: |
-        npx hexo version
-        npx hexo clean
-        npx hexo generate
+        hexo clean
+        hexo generate
         
-        # 验证构建
-        if [ -d "public" ]; then
-          echo "✅ 构建成功！"
+        # 关键：创建 .nojekyll 文件，禁用 Jekyll 构建
+        touch public/.nojekyll
+        
+        # 验证构建结果
+        echo "检查生成的文件:"
+        ls -la public/
+        echo ""
+        echo "index.html 内容预览:"
+        if [ -f "public/index.html" ]; then
+          head -50 public/index.html
+          echo ""
+          echo "文件大小: $(wc -l < public/index.html) 行"
         else
-          echo "❌ 构建失败"
+          echo "❌ index.html 不存在！"
           exit 1
         fi
     
