@@ -1,0 +1,9 @@
+# Next Theme Configuration
+# 使用Alternate Theme Config方式配置，避免修改子模块文件
+
+# Local Search
+local_search:
+  enable: true
+  top_n_per_article: 1
+  unescape: false
+  preload: false
