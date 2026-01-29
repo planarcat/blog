@@ -102,3 +102,10 @@ theme: next
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
 ## 不需要deploy配置，由 Github Actions 自动部署
+
+# Local Search
+search:
+  path: search.xml
+  field: post
+  content: true
+  format: html
