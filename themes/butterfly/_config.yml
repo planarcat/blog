@@ -631,13 +631,14 @@ twikoo:
 # https://giscus.app/
 giscus:
   repo: planarcat/blog
-  repo_id:
-  category_id:
+  repo_id: R_kgDORALpXA
+  category: Announcements
+  category_id: DIC_kwDORALpXM4C3UpB
   # Issue Mapping: pathname/url/title/og:title
   mapping: pathname
-  # Theme: light/dark/dark_dimmed/dark_high_contrast/transparent_dark/preferred_color_schem
-  light_theme: light
-  dark_theme: dark
+  strict: 0
+  # Theme: light/dark/dark_dimmed/dark_high_contrast/transparent_dark/preferred_color_scheme
+  theme: preferred_color_scheme
   # Place the comment box above the comments
   reactions_enabled: 1
   # Emit discussion metadata

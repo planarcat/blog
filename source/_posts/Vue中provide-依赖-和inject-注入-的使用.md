@@ -1080,9 +1080,3 @@ onUnmounted(() => {
 - [Vue 3 官方示例](https://github.com/vuejs/examples)
 - [VueUse 工具库](https://vueuse.org/)
 - [Element Plus 组件库](https://element-plus.org/)
-
----
-
-**最后更新**: 2026-02-27  
-**作者**: 项目团队  
-**许可证**: MIT
