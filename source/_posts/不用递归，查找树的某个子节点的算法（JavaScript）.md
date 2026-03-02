@@ -59,14 +59,14 @@ class TreeNode {
 ## 树遍历算法分类
 - **深度优先搜索（DFS）**：优先访问深层节点，使用栈实现
 - **广度优先搜索（BFS）**：优先访问同层节点，使用队列实现
-- **迭代遍历**：使用循环代替递归，避免栈溢出
+
+> **说明**：DFS和BFS都属于迭代遍历的实现方式，使用循环结构代替递归调用，避免栈溢出问题。
 
 ## 算法复杂度分析
 
 | 算法类型 | 时间复杂度 | 空间复杂度 | 适用场景 |
 |----------|------------|------------|----------|
-| DFS（递归） | O(n) | O(h) | 深度优先，h为树高 |
-| DFS（迭代） | O(n) | O(h) | 避免栈溢出 |
+| DFS（迭代） | O(n) | O(h) | 深度优先，h为树高 |
 | BFS（迭代） | O(n) | O(w) | 广度优先，w为树宽 |
 
 ---
@@ -84,26 +84,14 @@ class TreeNode {
 
 ```javascript
 /**
- * 树节点类定义
- * 提供基础的树节点数据结构
- */
-class TreeNode {
-    constructor(id, data = null) {
-        this.id = id;           // 节点唯一标识符
-        this.data = data;       // 节点存储的任意数据
-        this.children = [];     // 子节点数组
-    }
-}
-
-/**
- * 深度优先搜索查找节点（非递归实现）
- * 使用栈结构模拟递归调用，避免栈溢出风险
+ * 广度优先搜索查找节点（非递归实现）
+ * 使用队列结构实现层级遍历，适合查找最短路径
  * 
  * @param {TreeNode} root - 树的根节点
  * @param {*} targetId - 要查找的目标节点ID
  * @returns {TreeNode|null} 找到的节点或null
  */
-function findNodeByIdDFS(root, targetId) {
+function findNodeByIdBFS(root, targetId) {
     // 参数验证和边界条件处理
     if (!root) {
         console.warn('根节点不能为空');
@@ -240,8 +228,7 @@ function findNodeByIdBFSOptimized(root, targetId) {
     let index = 0;  // 当前处理索引
 
     while (index < queue.length) {
-        const node = queue[index];
-        index++;
+        const node = queue[index++];
 
         if (node.id === targetId) {
             return node;
@@ -281,6 +268,10 @@ console.log('DFS - 查找节点 7:', findNodeByIdDFS(root, 7)?.id); // undefined
 // 测试BFS
 console.log('BFS - 查找节点 6:', findNodeByIdBFS(root, 6)?.id); // 6
 console.log('BFS - 查找节点 8:', findNodeByIdBFS(root, 8)?.id); // undefined
+
+// 测试优化的BFS
+console.log('优化的BFS - 查找节点 6:', findNodeByIdBFSOptimized(root, 6)?.id); // 6
+console.log('优化的BFS - 查找节点 8:', findNodeByIdBFSOptimized(root, 8)?.id); // undefined
 ```
 
 ## 更通用的实现（支持自定义匹配条件）
@@ -335,8 +326,31 @@ const result2 = findTreeNode(root, node => node.data?.name === 'someName', 'bfs'
 
 ## 使用生成器实现迭代遍历
 
+### 生成器遍历的背景与优势
+
+生成器（Generator）是ES6引入的特殊函数，可以暂停和恢复执行，为树遍历提供了更优雅的解决方案。
+
+**适用场景与优势**：
+- **惰性求值**：按需生成节点，节省内存
+- **可中断遍历**：可以在任意节点停止遍历
+- **代码简洁**：使用`for...of`循环简化遍历逻辑
+- **复用性强**：同一个生成器可以用于多种操作
+
+**性能特点**：
+- 时间复杂度：O(n)，与普通迭代相同
+- 空间复杂度：O(h)（DFS）或O(w)（BFS）
+- 优势在于内存使用更灵活，适合处理大型树结构
+
+### 深度优先搜索（DFS）生成器实现
+
 ```javascript
-// 使用生成器遍历树（深度优先）
+/**
+ * 深度优先搜索生成器
+ * 按深度优先顺序逐个生成树节点
+ * 
+ * @param {TreeNode} node - 起始节点
+ * @yields {TreeNode} 树节点
+ */
 function* traverseTreeDFS(node) {
     const stack = [node];
 
@@ -344,6 +358,7 @@ function* traverseTreeDFS(node) {
         const currentNode = stack.pop();
         yield currentNode;
 
+        // 反转子节点顺序，确保从左到右遍历
         const children = currentNode.children.slice().reverse();
         for (const child of children) {
             stack.push(child);
@@ -352,13 +367,98 @@ function* traverseTreeDFS(node) {
 }
 
 // 使用生成器查找节点
-function findNodeWithGenerator(root, targetId) {
+function findNodeWithGeneratorDFS(root, targetId) {
     for (const node of traverseTreeDFS(root)) {
         if (node.id === targetId) {
             return node;
         }
     }
     return null;
+}
+```
+
+### 广度优先搜索（BFS）生成器实现
+
+```javascript
+/**
+ * 广度优先搜索生成器
+ * 按层级顺序逐个生成树节点
+ * 
+ * @param {TreeNode} node - 起始节点
+ * @yields {TreeNode} 树节点
+ */
+function* traverseTreeBFS(node) {
+    const queue = [node];
+
+    while (queue.length > 0) {
+        const currentNode = queue.shift();
+        yield currentNode;
+
+        // 按顺序添加子节点
+        for (const child of currentNode.children) {
+            queue.push(child);
+        }
+    }
+}
+
+// 使用生成器查找节点（BFS）
+function findNodeWithGeneratorBFS(root, targetId) {
+    for (const node of traverseTreeBFS(root)) {
+        if (node.id === targetId) {
+            return node;
+        }
+    }
+    return null;
+}
+```
+
+### 生成器实现与前两种实现的关系
+
+**关系对比**：
+
+| 实现方式 | 核心思想 | 优势 | 适用场景 |
+|----------|----------|------|----------|
+| **基础迭代** | 直接操作栈/队列 | 性能最优，控制精细 | 性能敏感场景 |
+| **优化迭代** | 索引优化数组操作 | 避免数组移位开销 | 大型树结构 |
+| **生成器** | 惰性求值，可中断 | 代码简洁，内存灵活 | 复杂遍历逻辑 |
+
+**生成器的独特价值**：
+- **分离遍历逻辑**：将遍历过程与具体操作解耦
+- **支持多种操作**：同一个生成器可用于查找、统计、过滤等
+- **内存效率**：适合处理超大型树结构（按需生成）
+
+### 使用示例
+
+```javascript
+// 构建示例树
+const root = new TreeNode(1);
+const node2 = new TreeNode(2);
+const node3 = new TreeNode(3);
+const node4 = new TreeNode(4);
+
+root.children = [node2, node3];
+node2.children = [node4];
+
+// 使用生成器进行多种操作
+console.log('=== 生成器遍历演示 ===');
+
+// 1. 查找特定节点
+console.log('查找节点 4 (DFS):', findNodeWithGeneratorDFS(root, 4)?.id);
+console.log('查找节点 4 (BFS):', findNodeWithGeneratorBFS(root, 4)?.id);
+
+// 2. 统计节点数量
+let count = 0;
+for (const node of traverseTreeDFS(root)) {
+    count++;
+}
+console.log('树节点总数:', count);
+
+// 3. 查找满足条件的节点
+for (const node of traverseTreeBFS(root)) {
+    if (node.id > 2) {
+        console.log('找到ID大于2的节点:', node.id);
+        break; // 可中断遍历
+    }
 }
 ```
 
